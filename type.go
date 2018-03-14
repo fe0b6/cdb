@@ -31,6 +31,7 @@ func init() {
 type Parent struct {
 	DBParentObjInited bool
 	DBParentObjTx     unsafe.Pointer
+	DBParentInitValue map[string]interface{}
 }
 
 // InitConnect - Объект конекта к базе

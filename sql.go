@@ -148,15 +148,21 @@ func Set(i interface{}) (err error) {
 	inited := el.FieldByName("DBParentObjInited").Bool()
 
 	var sqlrq string
-	if tinfo["pkey"] != "" && inited {
-		sqlrq = fmt.Sprintf("UPSERT INTO %s(%s) VALUES(%s)", tinfo["sourcetable"],
-			tinfo["fields"], tinfo["values"])
+	if inited && tinfo["pkey"] != "" {
+		if tinfo["upvalues"] == "" {
+			return
+		}
+		sqlrq = fmt.Sprintf("UPDATE %s SET %s WHERE %s=:%s", tinfo["sourcetable"],
+			tinfo["upvalues"], tinfo["pkey"], tinfo["pkey"])
 	} else if tinfo["pkey"] != "" {
 		sqlrq = fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s) RETURNING %s", tinfo["sourcetable"],
 			tinfo["fields"], tinfo["values"], tinfo["pkey"])
 	} else {
 		log.Fatalln("bad set rq")
 	}
+
+	//	log.Println(sqlrq)
+	//	log.Printf("%+v", i)
 
 	var rows *sqlx.Rows
 	if tx != nil {
@@ -190,6 +196,8 @@ func _setInitedData(i interface{}, o *ParamObj) {
 	if o != nil && o.Tx != nil {
 		el.FieldByName("DBParentObjTx").SetPointer(unsafe.Pointer(o.Tx))
 	}
+
+	InitObj(i)
 }
 
 func dbRq(i interface{}, o *ParamObj) (rows *sqlx.Rows, err error) {
@@ -284,11 +292,39 @@ func getFiledsAndValues(i interface{}) (string, string) {
 // Получаем поля для выборки из базы
 func getTagInfo(i interface{}, t string) map[string]string {
 	si := reflect.ValueOf(i).Type()
+	vi := reflect.ValueOf(i)
+
 	if si.Kind() == reflect.Ptr {
 		si = si.Elem()
+		vi = vi.Elem()
 	}
 	if si.Kind() == reflect.Slice {
 		si = si.Elem()
+	}
+
+	// Смотрим какие переменные были изменены
+	changedValues := map[string]bool{}
+	if t == "insert" {
+		v := vi.FieldByName("DBParentInitValue")
+
+		th := map[string]interface{}{}
+		for _, key := range v.MapKeys() {
+			strct := v.MapIndex(key)
+			th[key.Interface().(string)] = strct.Interface()
+		}
+
+		for k := 0; k < si.NumField(); k++ {
+			name := si.Field(k).Name
+
+			v, ok := th[name]
+			if !ok {
+				continue
+			}
+
+			if !reflect.DeepEqual(v, vi.Field(k).Interface()) {
+				changedValues[name] = true
+			}
+		}
 	}
 
 	// Собираем данные
@@ -297,8 +333,9 @@ func getTagInfo(i interface{}, t string) map[string]string {
 	upvalues := []string{}
 	var pkey, table string
 	for k := 0; k < si.NumField(); k++ {
-		f := si.Field(k).Tag.Get("db")
-		pk := si.Field(k).Tag.Get("pk")
+		field := si.Field(k)
+		f := field.Tag.Get("db")
+		pk := field.Tag.Get("pk")
 
 		if pk == "true" {
 			pkey = f
@@ -307,7 +344,7 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			}
 		}
 
-		st := si.Field(k).Tag.Get("sourcetable")
+		st := field.Tag.Get("sourcetable")
 		if st != "" {
 			table = st
 			if t == "sourcetable" {
@@ -319,6 +356,10 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			if t == "insert" && pk == "true" {
 				continue
 			}
+			if t == "insert" && !changedValues[field.Name] {
+				continue
+			}
+
 			fields = append(fields, f)
 			values = append(values, ":"+f)
 			upvalues = append(upvalues, f+"=:"+f)
