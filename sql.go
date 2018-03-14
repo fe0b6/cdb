@@ -1,6 +1,7 @@
 package cdb
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -56,20 +57,27 @@ func Get(i interface{}, o *ParamObj) (err error) {
 	o.Limit = "1"
 
 	rows, err := dbRq(i, o)
+	if rows != nil {
+		defer rows.Close()
+	}
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
-	if rows != nil {
-		defer rows.Close()
-	}
 
+	var find bool
 	for rows.Next() {
 		err = rows.StructScan(i)
 		if err != nil {
 			log.Println("[error]", err)
 			return
 		}
+		find = true
+	}
+
+	if !find {
+		err = errors.New("sql: no rows in result set")
+		return
 	}
 
 	_setInitedData(i, o)
