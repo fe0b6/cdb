@@ -38,7 +38,7 @@ func InitObj(i interface{}, o *ParamObj) {
 }
 
 // GetTx - Получаем хэндлер транзакции
-func (p *Parent) GetTx(tx *sqlx.Tx) {
+func (p *Parent) GetTx() (tx *sqlx.Tx) {
 	tx = (*sqlx.Tx)(unsafe.Pointer(p.DBParentObjTx))
 	return
 }
