@@ -210,7 +210,7 @@ func dbRq(i interface{}, o *ParamObj) (rows *sqlx.Rows, err error) {
 		o = &ParamObj{}
 	}
 
-	sqlrq := replacePlaceholder(getSQLStr(i, o))
+	sqlrq := ReplacePlaceholder(getSQLStr(i, o))
 
 	if o.Tx != nil {
 		rows, err = o.Tx.Queryx(sqlrq, o.Values...)
