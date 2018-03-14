@@ -201,11 +201,8 @@ func Set(i interface{}) (err error) {
 func _setInitedData(i interface{}, o *ParamObj) {
 	el := reflect.Indirect(reflect.ValueOf(i))
 	el.FieldByName("DBParentObjInited").SetBool(true)
-	if o != nil && o.Tx != nil {
-		el.FieldByName("DBParentObjTx").SetPointer(unsafe.Pointer(o.Tx))
-	}
 
-	InitObj(i)
+	InitObj(i, o)
 }
 
 func dbRq(i interface{}, o *ParamObj) (rows *sqlx.Rows, err error) {
