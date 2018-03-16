@@ -178,9 +178,6 @@ func Set(i interface{}) (err error) {
 	} else {
 		rows, err = Dbh.NamedQuery(sqlrq, i)
 	}
-	if rows != nil {
-		defer rows.Close()
-	}
 	if err != nil {
 		log.Println("[error]", err)
 		return
@@ -198,6 +195,7 @@ func Set(i interface{}) (err error) {
 		el.FieldByName("DBParentObjInited").SetBool(true)
 	}
 
+	rows.Close()
 	return
 }
 
