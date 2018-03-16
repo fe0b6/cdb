@@ -29,9 +29,9 @@ func init() {
 
 // Parent - Объект структуры для объектов
 type Parent struct {
-	DBParentObjInited bool
-	DBParentObjTx     unsafe.Pointer
-	DBParentInitValue map[string]interface{}
+	DBParentObjInited bool                   `json:"-"`
+	DBParentObjTx     unsafe.Pointer         `json:"-"`
+	DBParentInitValue map[string]interface{} `json:"-"`
 }
 
 // InitConnect - Объект конекта к базе
