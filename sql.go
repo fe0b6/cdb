@@ -173,6 +173,7 @@ func Set(i interface{}) (err error) {
 	//	log.Printf("%+v", i)
 
 	var rows *sqlx.Rows
+	defer rows.Close()
 	if tx != nil {
 		rows, err = tx.NamedQuery(sqlrq, i)
 	} else {
