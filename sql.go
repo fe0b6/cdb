@@ -206,6 +206,29 @@ func _setInitedData(i interface{}, o *ParamObj) {
 	InitObj(i, o)
 }
 
+// Delete - удаление записи
+func Delete(i interface{}) (err error) {
+	el := reflect.Indirect(reflect.ValueOf(i))
+	tx := (*sqlx.Tx)(unsafe.Pointer(el.FieldByName("DBParentObjTx").Pointer()))
+
+	table := getTableName(i)
+	pkey := getPrimaryKey(i)
+
+	sqlrq := fmt.Sprintf("DELETE FROM %s WHERE %s=:%s", table, pkey, pkey)
+
+	if tx != nil {
+		_, err = tx.NamedExec(sqlrq, i)
+	} else {
+		_, err = Dbh.NamedExec(sqlrq, i)
+	}
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	return
+}
+
 func dbRq(i interface{}, o *ParamObj) (rows *sqlx.Rows, err error) {
 	if o == nil {
 		o = &ParamObj{}
