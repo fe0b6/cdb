@@ -187,7 +187,11 @@ func Set(i interface{}) (err error) {
 	if !inited {
 		var id int64
 		for rows.Next() {
-			rows.Scan(&id)
+			err = rows.Scan(&id)
+			if err != nil {
+				log.Println("[error]", err)
+				return
+			}
 		}
 
 		el := reflect.Indirect(reflect.ValueOf(i))
