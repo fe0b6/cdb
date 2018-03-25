@@ -194,6 +194,11 @@ func Set(i interface{}) (err error) {
 			}
 		}
 
+		if rows.Err() != nil {
+			err = rows.Err()
+			return
+		}
+
 		el := reflect.Indirect(reflect.ValueOf(i))
 		el.FieldByName("ID").SetInt(id)
 		el.FieldByName("DBParentObjInited").SetBool(true)
