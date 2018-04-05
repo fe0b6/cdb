@@ -170,8 +170,8 @@ func Set(i interface{}) (err error) {
 		log.Fatalln("bad set rq")
 	}
 
-	//	log.Println(sqlrq)
-	//	log.Printf("%+v", i)
+	log.Println(sqlrq)
+	log.Printf("%+v", i)
 
 	var rows *sqlx.Rows
 	if tx != nil {
@@ -361,6 +361,7 @@ func getTagInfo(i interface{}, t string) map[string]string {
 	}
 	if si.Kind() == reflect.Slice {
 		si = si.Elem()
+		vi = vi.Elem()
 	}
 
 	// Смотрим какие переменные были изменены
