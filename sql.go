@@ -375,7 +375,18 @@ func getTagInfo(i interface{}, t string) map[string]string {
 		}
 
 		for k := 0; k < si.NumField(); k++ {
-			name := si.Field(k).Name
+			field := si.Field(k)
+			name := field.Name
+
+			// Проверяем есть ли json для этой переменной
+			jsonField := vi.FieldByName(name + "JSON")
+			if jsonField.IsValid() && field.Type.String() == "[]uint8" {
+				b, err := json.Marshal(jsonField.Interface())
+				if err != nil {
+					log.Println("[error]", err)
+				}
+				vi.FieldByName(name).SetBytes(b)
+			}
 
 			v, ok := th[name]
 			if !ok {
