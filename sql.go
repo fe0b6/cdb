@@ -170,8 +170,8 @@ func Set(i interface{}) (err error) {
 		log.Fatalln("bad set rq")
 	}
 
-	log.Println(sqlrq)
-	log.Printf("%+v", i)
+	//	log.Println(sqlrq)
+	//	log.Printf("%+v", i)
 
 	var rows *sqlx.Rows
 	if tx != nil {
@@ -354,14 +354,16 @@ func getFiledsAndValues(i interface{}) (string, string) {
 func getTagInfo(i interface{}, t string) map[string]string {
 	si := reflect.ValueOf(i).Type()
 	vi := reflect.ValueOf(i)
+	viNoPtr := reflect.ValueOf(i)
 
 	if si.Kind() == reflect.Ptr {
 		si = si.Elem()
 		vi = vi.Elem()
+		viNoPtr = viNoPtr.Elem()
 	}
 	if si.Kind() == reflect.Slice {
 		si = si.Elem()
-		vi = vi.Elem()
+		viNoPtr = viNoPtr.Elem()
 	}
 
 	// Смотрим какие переменные были изменены
@@ -380,13 +382,13 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			name := field.Name
 
 			// Проверяем есть ли json для этой переменной
-			jsonField := vi.FieldByName(name + "JSON")
+			jsonField := viNoPtr.FieldByName(name + "JSON")
 			if jsonField.IsValid() && field.Type.String() == "[]uint8" {
 				b, err := json.Marshal(jsonField.Interface())
 				if err != nil {
 					log.Println("[error]", err)
 				}
-				vi.FieldByName(name).SetBytes(b)
+				viNoPtr.FieldByName(name).SetBytes(b)
 			}
 
 			v, ok := th[name]
