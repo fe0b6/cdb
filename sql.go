@@ -354,17 +354,16 @@ func getFiledsAndValues(i interface{}) (string, string) {
 func getTagInfo(i interface{}, t string) map[string]string {
 	si := reflect.ValueOf(i).Type()
 	vi := reflect.ValueOf(i)
-	viNoPtr := reflect.ValueOf(i)
 
 	if si.Kind() == reflect.Ptr {
 		si = si.Elem()
 		vi = vi.Elem()
-		viNoPtr = viNoPtr.Elem()
 	}
 	if si.Kind() == reflect.Slice {
 		si = si.Elem()
-		viNoPtr = viNoPtr.Elem()
 	}
+
+	viNoPtr := reflect.Indirect(vi)
 
 	// Смотрим какие переменные были изменены
 	changedValues := map[string]bool{}
