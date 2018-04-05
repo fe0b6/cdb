@@ -230,7 +230,7 @@ func _setInitedData(i interface{}, o *ParamObj) {
 
 		log.Println(v.String())
 
-		obj := f.Interface()
+		obj := f.Elem()
 
 		err := json.Unmarshal([]byte(v.String()), &obj)
 		if err != nil {
