@@ -1,6 +1,7 @@
 package cdb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -221,7 +222,21 @@ func _setInitedData(i interface{}, o *ParamObj) {
 	}
 	for k := 0; k < si.NumField(); k++ {
 		f := el.FieldByName(si.Field(k).Name + "JSON")
-		log.Println(si.Field(k).Name, f.IsValid())
+		if !f.IsValid() {
+			continue
+		}
+
+		v := el.FieldByName(si.Field(k).Name)
+
+		log.Println(v.String())
+
+		err := json.Unmarshal([]byte(v.String()), f.Interface())
+		if err != nil {
+			log.Println("[error]", err)
+		}
+
+		log.Println(f.Interface())
+
 	}
 
 	InitObj(i, o)
