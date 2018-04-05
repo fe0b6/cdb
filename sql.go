@@ -222,23 +222,17 @@ func _setInitedData(i interface{}, o *ParamObj) {
 	}
 	for k := 0; k < si.NumField(); k++ {
 		f := el.FieldByName(si.Field(k).Name + "JSON")
-		if !f.IsValid() {
+		if !f.IsValid() || si.Field(k).Type.String() != "[]uint8" {
 			continue
 		}
 
-		v := el.FieldByName(si.Field(k).Name)
-
-		log.Println(v.String())
-
-		obj := f.Elem()
-
-		err := json.Unmarshal([]byte(v.String()), &obj)
+		ptr := reflect.New(reflect.Indirect(f).Type())
+		err := json.Unmarshal(el.FieldByName(si.Field(k).Name).Bytes(), ptr.Interface())
 		if err != nil {
 			log.Println("[error]", err)
+		} else {
+			f.Set(ptr.Elem())
 		}
-
-		log.Println(f.Interface())
-
 	}
 
 	InitObj(i, o)
