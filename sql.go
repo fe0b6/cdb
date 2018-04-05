@@ -363,8 +363,6 @@ func getTagInfo(i interface{}, t string) map[string]string {
 		si = si.Elem()
 	}
 
-	viNoPtr := reflect.Indirect(vi)
-
 	// Смотрим какие переменные были изменены
 	changedValues := map[string]bool{}
 	if t == "insert" {
@@ -381,13 +379,13 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			name := field.Name
 
 			// Проверяем есть ли json для этой переменной
-			jsonField := viNoPtr.FieldByName(name + "JSON")
+			jsonField := vi.FieldByName(name + "JSON")
 			if jsonField.IsValid() && field.Type.String() == "[]uint8" {
 				b, err := json.Marshal(jsonField.Interface())
 				if err != nil {
 					log.Println("[error]", err)
 				}
-				viNoPtr.FieldByName(name).SetBytes(b)
+				vi.FieldByName(name).SetBytes(b)
 			}
 
 			v, ok := th[name]
