@@ -212,6 +212,12 @@ func _setInitedData(i interface{}, o *ParamObj) {
 	el := reflect.Indirect(reflect.ValueOf(i))
 	el.FieldByName("DBParentObjInited").SetBool(true)
 
+	si := reflect.ValueOf(i).Type()
+	for k := 0; k < si.NumField(); k++ {
+		f := el.FieldByName(si.Field(k).Name + "JSON")
+		log.Println(si.Field(k).Name, f.IsValid())
+	}
+
 	InitObj(i, o)
 }
 
