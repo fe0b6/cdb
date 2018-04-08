@@ -183,6 +183,7 @@ func Set(i interface{}) (err error) {
 		log.Println("[error]", err)
 		return
 	}
+	defer rows.Close()
 
 	// Если это добавление нового объекта
 	if !inited {
@@ -205,7 +206,8 @@ func Set(i interface{}) (err error) {
 		el.FieldByName("DBParentObjInited").SetBool(true)
 	}
 
-	rows.Close()
+	InitObj(i, nil)
+
 	return
 }
 
