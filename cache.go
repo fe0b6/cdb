@@ -232,7 +232,7 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 func (c *CacheObj) Del(key string) (err error) {
 
 	err = Cdb.conn.Send(ramnet.Rqdata{
-		Action: "set",
+		Action: "del",
 		Data: tools.ToGob(ramnet.RqdataSet{
 			Key: Cdb.prefix + key,
 		}),
