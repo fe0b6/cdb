@@ -3,6 +3,7 @@ package cdb
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/fe0b6/ramnet"
@@ -31,10 +32,12 @@ func CacheConnect(o InitCacheConnect) (err error) {
 
 // Get - Получаем объект из кэша
 func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
+	key = c.setPrefix(key)
+
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "get",
 		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: Cdb.prefix + key,
+			Key: key,
 		}),
 	})
 
@@ -57,27 +60,13 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 
 // GetObj - Получаем объект из кэша и сразу его преобразовываем
 func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
-	err = Cdb.conn.Send(ramnet.Rqdata{
-		Action: "get",
-		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: Cdb.prefix + key,
-		}),
-	})
-
+	obj, err := c.Get(key)
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
 
-	var ans ramnet.Ansdata
-	Cdb.conn.Gr.Decode(&ans)
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	tools.FromGob(i, ans.Obj.Data)
+	tools.FromGob(i, obj.Data)
 	return
 }
 
@@ -111,10 +100,12 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 		ex += int(tnu)
 	}
 
+	key = c.setPrefix(key)
+
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "set",
 		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: Cdb.prefix + key,
+			Key: key,
 			Obj: ramstore.Obj{
 				Data:   data,
 				Time:   tnu,
@@ -151,8 +142,10 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 
 	d := []ramnet.RqdataSet{}
 	for k, v := range h {
+		k = c.setPrefix(k)
+
 		d = append(d, ramnet.RqdataSet{
-			Key: Cdb.prefix + k,
+			Key: k,
 			Obj: ramstore.Obj{
 				Data: v,
 				Time: tnu,
@@ -195,8 +188,10 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 	d := []ramnet.RqdataGet{}
 	for _, k := range keys {
+		k = c.setPrefix(k)
+
 		d = append(d, ramnet.RqdataGet{
-			Key: Cdb.prefix + k,
+			Key: k,
 		})
 	}
 
@@ -230,11 +225,12 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 // Search - поиск ключей на соответствие
 func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
+	q = c.setPrefix(q)
 
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "search",
 		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: Cdb.prefix + q,
+			Key: q,
 		}),
 	})
 
@@ -263,11 +259,12 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 
 // Del - Удаляем объект
 func (c *CacheObj) Del(key string) (err error) {
+	key = c.setPrefix(key)
 
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "del",
 		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: Cdb.prefix + key,
+			Key: key,
 		}),
 	})
 
@@ -285,4 +282,11 @@ func (c *CacheObj) Del(key string) (err error) {
 	}
 
 	return
+}
+
+func (c *CacheObj) setPrefix(key string) string {
+	if strings.Contains(key, c.prefix) {
+		return key
+	}
+	return c.prefix + key
 }
