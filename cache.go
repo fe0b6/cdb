@@ -227,3 +227,29 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 	return
 }
+
+// Del - Удаляем объект
+func (c *CacheObj) Del(key string) (err error) {
+
+	err = Cdb.conn.Send(ramnet.Rqdata{
+		Action: "set",
+		Data: tools.ToGob(ramnet.RqdataSet{
+			Key: Cdb.prefix + key,
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	var ans ramnet.Ansdata
+	Cdb.conn.Gr.Decode(&ans)
+
+	if ans.Error != "" {
+		err = errors.New(ans.Error)
+		return
+	}
+
+	return
+}
