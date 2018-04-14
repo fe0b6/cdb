@@ -83,8 +83,13 @@ func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
 
 // SetObj - добавляем объект в кэш
 func (c *CacheObj) SetObj(key string, i interface{}) (err error) {
+	return c.SetObjEx(key, i, 0)
+}
+
+// SetObjEx - добавляем объект в кэш с указанием времени истечения
+func (c *CacheObj) SetObjEx(key string, i interface{}, ex int) (err error) {
 	data := tools.ToGob(i)
-	return c.SetEx(key, data, 0)
+	return c.SetEx(key, data, ex)
 }
 
 // Set - добавляем объект в кэш
