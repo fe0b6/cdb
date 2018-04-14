@@ -255,6 +255,8 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 			break
 		}
 
+		log.Println(ans.Key, ans.EOF)
+
 		f(ans.Key, ans.Obj)
 	}
 
