@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"unsafe"
 
+	"github.com/fe0b6/ramnet"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -118,4 +119,9 @@ func (o *ParamObj) clean() {
 			o.Offset = t
 		}
 	}
+}
+
+// CacheObj - Объект коннекта к кэшу
+type CacheObj struct {
+	conn ramnet.ClientConn
 }
