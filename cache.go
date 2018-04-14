@@ -55,6 +55,38 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 	return
 }
 
+// GetObj - Получаем объект из кэша и сразу его преобразовываем
+func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
+	err = Cdb.conn.Send(ramnet.Rqdata{
+		Action: "get",
+		Data: tools.ToGob(ramnet.RqdataGet{
+			Key: Cdb.prefix + key,
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	var ans ramnet.Ansdata
+	Cdb.conn.Gr.Decode(&ans)
+
+	if ans.Error != "" {
+		err = errors.New(ans.Error)
+		return
+	}
+
+	tools.FromGob(i, ans.Obj.Data)
+	return
+}
+
+// SetObj - добавляем объект в кэш
+func (c *CacheObj) SetObj(key string, i interface{}) (err error) {
+	data := tools.ToGob(i)
+	return c.SetEx(key, data, 0)
+}
+
 // Set - добавляем объект в кэш
 func (c *CacheObj) Set(key string, data []byte) (err error) {
 	return c.SetEx(key, data, 0)
