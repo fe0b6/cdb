@@ -228,6 +228,39 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 	return
 }
 
+// Search - поиск ключей на соответствие
+func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
+
+	err = Cdb.conn.Send(ramnet.Rqdata{
+		Action: "search",
+		Data: tools.ToGob(ramnet.RqdataGet{
+			Key: Cdb.prefix + q,
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	for {
+		var ans ramnet.Ansdata
+		Cdb.conn.Gr.Decode(&ans)
+		if ans.Error != "" {
+			err = errors.New(ans.Error)
+			return
+		}
+
+		if ans.EOF {
+			break
+		}
+
+		f(ans.Key, ans.Obj)
+	}
+
+	return
+}
+
 // Del - Удаляем объект
 func (c *CacheObj) Del(key string) (err error) {
 
