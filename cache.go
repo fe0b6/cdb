@@ -16,8 +16,9 @@ var (
 )
 
 // CacheConnect - коннект к кэщу
-func CacheConnect(host string) (err error) {
-	Cdb.conn.Addr = host
+func CacheConnect(o InitCacheConnect) (err error) {
+	Cdb.conn.Addr = o.Host
+	Cdb.prefix = o.Prefix
 
 	err = Cdb.conn.Connet()
 	if err != nil {
@@ -33,7 +34,7 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "get",
 		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: key,
+			Key: Cdb.prefix + key,
 		}),
 	})
 
@@ -76,7 +77,7 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	err = Cdb.conn.Send(ramnet.Rqdata{
 		Action: "set",
 		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: key,
+			Key: Cdb.prefix + key,
 			Obj: ramstore.Obj{
 				Data:   data,
 				Time:   tnu,
@@ -114,7 +115,7 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 	d := []ramnet.RqdataSet{}
 	for k, v := range h {
 		d = append(d, ramnet.RqdataSet{
-			Key: k,
+			Key: Cdb.prefix + k,
 			Obj: ramstore.Obj{
 				Data: v,
 				Time: tnu,
@@ -158,7 +159,7 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 	d := []ramnet.RqdataGet{}
 	for _, k := range keys {
 		d = append(d, ramnet.RqdataGet{
-			Key: k,
+			Key: Cdb.prefix + k,
 		})
 	}
 

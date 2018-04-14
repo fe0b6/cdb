@@ -123,5 +123,12 @@ func (o *ParamObj) clean() {
 
 // CacheObj - Объект коннекта к кэшу
 type CacheObj struct {
-	conn ramnet.ClientConn
+	conn   ramnet.ClientConn
+	prefix string
+}
+
+// InitCacheConnect - объект инициализации коннекта к кэшу
+type InitCacheConnect struct {
+	Host   string
+	Prefix string
 }
