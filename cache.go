@@ -148,7 +148,9 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
 	obj, err := c.Get(key)
 	if err != nil {
-		log.Println("[error]", err)
+		if err.Error() != "key not found" {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
