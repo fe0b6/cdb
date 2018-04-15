@@ -27,7 +27,7 @@ func CacheConnect(o InitCacheConnect) (err error) {
 
 	err = Cdb.createConnet(o.QueueStartSize)
 	if err != nil {
-		log.Fatalln("[fatal]", err)
+		log.Println("[fatal]", err)
 		return
 	}
 
