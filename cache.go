@@ -188,7 +188,7 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	}
 	defer c.pushConnect(conn)
 
-	tnu := time.Now().Unix()
+	tnu := time.Now().UnixNano()
 
 	if ex > 0 {
 		ex += int(tnu)
@@ -242,7 +242,7 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 	}
 	defer c.pushConnect(conn)
 
-	tnu := time.Now().Unix()
+	tnu := time.Now().UnixNano()
 
 	d := []ramnet.RqdataSet{}
 	for k, v := range h {
