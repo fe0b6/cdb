@@ -54,7 +54,7 @@ func (c *CacheObj) createConnet(s int) (err error) {
 }
 
 func (c *CacheObj) initConnect() (conn *ramnet.ClientConn, err error) {
-	conn.Addr = c.addr
+	conn = &ramnet.ClientConn{Addr: c.addr}
 
 	err = conn.Connet()
 	if err != nil {
