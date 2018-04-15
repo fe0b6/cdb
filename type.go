@@ -3,6 +3,7 @@ package cdb
 import (
 	"log"
 	"regexp"
+	"sync"
 	"unsafe"
 
 	"github.com/fe0b6/ramnet"
@@ -123,12 +124,15 @@ func (o *ParamObj) clean() {
 
 // CacheObj - Объект коннекта к кэшу
 type CacheObj struct {
-	conn   ramnet.ClientConn
-	prefix string
+	addr         string
+	prefix       string
+	connectQueue chan *ramnet.ClientConn
+	sync.Mutex
 }
 
 // InitCacheConnect - объект инициализации коннекта к кэшу
 type InitCacheConnect struct {
-	Host   string
-	Prefix string
+	Host           string
+	Prefix         string
+	QueueStartSize int
 }

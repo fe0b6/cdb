@@ -11,6 +11,8 @@ import (
 	"github.com/fe0b6/tools"
 )
 
+const cacheQueueSize = 100
+
 var (
 	// Cdb - хэндлер кэша
 	Cdb CacheObj
@@ -18,10 +20,12 @@ var (
 
 // CacheConnect - коннект к кэщу
 func CacheConnect(o InitCacheConnect) (err error) {
-	Cdb.conn.Addr = o.Host
+	Cdb.addr = o.Host
 	Cdb.prefix = o.Prefix
 
-	err = Cdb.conn.Connet()
+	Cdb.connectQueue = make(chan *ramnet.ClientConn, cacheQueueSize)
+
+	err = Cdb.createConnet(o.QueueStartSize)
 	if err != nil {
 		log.Fatalln("[fatal]", err)
 		return
@@ -30,11 +34,75 @@ func CacheConnect(o InitCacheConnect) (err error) {
 	return
 }
 
+func (c *CacheObj) createConnet(s int) (err error) {
+	if s == 0 {
+		s = 1
+	}
+
+	for i := 0; i < s; i++ {
+		var conn *ramnet.ClientConn
+		conn, err = c.initConnect()
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+
+		c.pushConnect(conn)
+	}
+
+	return
+}
+
+func (c *CacheObj) initConnect() (conn *ramnet.ClientConn, err error) {
+	conn.Addr = c.addr
+
+	err = conn.Connet()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	return
+}
+
+func (c *CacheObj) pushConnect(conn *ramnet.ClientConn) {
+	c.Lock()
+	if len(c.connectQueue) < cacheQueueSize/2 {
+		c.connectQueue <- conn
+	}
+	c.Unlock()
+}
+
+func (c *CacheObj) getConnect() (conn *ramnet.ClientConn, err error) {
+	c.Lock()
+	if len(c.connectQueue) > 0 {
+		conn = <-c.connectQueue
+		c.Unlock()
+	} else {
+		c.Unlock()
+
+		conn, err = c.initConnect()
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+	}
+
+	return
+}
+
 // Get - Получаем объект из кэша
 func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
 	key = c.setPrefix(key)
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "get",
 		Data: tools.ToGob(ramnet.RqdataGet{
 			Key: key,
@@ -47,7 +115,7 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 	}
 
 	var ans ramnet.Ansdata
-	Cdb.conn.Gr.Decode(&ans)
+	conn.Gr.Decode(&ans)
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -93,6 +161,12 @@ func (c *CacheObj) SetStr(key string, data string) (err error) {
 
 // SetEx - добавление объекта со сроком жизни
 func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
 
 	tnu := time.Now().Unix()
 
@@ -102,7 +176,7 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 
 	key = c.setPrefix(key)
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "set",
 		Data: tools.ToGob(ramnet.RqdataSet{
 			Key: key,
@@ -120,7 +194,7 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	Cdb.conn.Gr.Decode(&ans)
+	conn.Gr.Decode(&ans)
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -137,6 +211,12 @@ func (c *CacheObj) SetExStr(key string, data string, ex int) (err error) {
 
 // MultiSet - массовое добавление объектов
 func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
 
 	tnu := time.Now().Unix()
 
@@ -153,7 +233,7 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 		})
 	}
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "multi_set",
 		Data:   tools.ToGob(d),
 	})
@@ -164,7 +244,7 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	Cdb.conn.Gr.Decode(&ans)
+	conn.Gr.Decode(&ans)
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -185,6 +265,12 @@ func (c *CacheObj) MultiGet(keys []string) (h map[string]ramstore.Obj, err error
 
 // MultiGetFunc - получаем список объектов из кэша в функцию
 func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
 
 	d := []ramnet.RqdataGet{}
 	for _, k := range keys {
@@ -195,7 +281,7 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 		})
 	}
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "multi_get",
 		Data:   tools.ToGob(d),
 	})
@@ -207,7 +293,7 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 	for {
 		var ans ramnet.Ansdata
-		Cdb.conn.Gr.Decode(&ans)
+		conn.Gr.Decode(&ans)
 		if ans.Error != "" {
 			err = errors.New(ans.Error)
 			return
@@ -225,9 +311,16 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 // Search - поиск ключей на соответствие
 func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
 	q = c.setPrefix(q)
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "search",
 		Data: tools.ToGob(ramnet.RqdataGet{
 			Key: q,
@@ -241,7 +334,7 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 
 	for {
 		var ans ramnet.Ansdata
-		Cdb.conn.Gr.Decode(&ans)
+		conn.Gr.Decode(&ans)
 		if ans.Error != "" {
 			err = errors.New(ans.Error)
 			return
@@ -259,9 +352,16 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 
 // Del - Удаляем объект
 func (c *CacheObj) Del(key string) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
 	key = c.setPrefix(key)
 
-	err = Cdb.conn.Send(ramnet.Rqdata{
+	err = conn.Send(ramnet.Rqdata{
 		Action: "del",
 		Data: tools.ToGob(ramnet.RqdataSet{
 			Key: key,
@@ -274,7 +374,7 @@ func (c *CacheObj) Del(key string) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	Cdb.conn.Gr.Decode(&ans)
+	conn.Gr.Decode(&ans)
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
