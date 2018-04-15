@@ -2,7 +2,6 @@ package cdb
 
 import (
 	"errors"
-	"io"
 	"log"
 	"strings"
 	"time"
@@ -100,16 +99,6 @@ func (c *CacheObj) readAns(conn *ramnet.ClientConn, to time.Duration, i interfac
 
 	err = conn.Gr.Decode(i)
 	if err != nil {
-		if err == io.EOF {
-			err = conn.Connet()
-			if err != nil {
-				log.Println("[error]", err)
-				return
-			}
-
-			return c.readAns(conn, to, i)
-		}
-
 		log.Println("[error]", err)
 		return
 	}
