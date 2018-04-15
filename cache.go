@@ -90,6 +90,20 @@ func (c *CacheObj) getConnect() (conn *ramnet.ClientConn, err error) {
 
 	return
 }
+func (c *CacheObj) readAns(conn *ramnet.ClientConn, to time.Duration, i interface{}) (err error) {
+	err = conn.Conn.SetReadDeadline(time.Now().Add(to))
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	err = conn.Gr.Decode(&i)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	return
+}
 
 // Get - Получаем объект из кэша
 func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
@@ -115,7 +129,11 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 	}
 
 	var ans ramnet.Ansdata
-	conn.Gr.Decode(&ans)
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -194,7 +212,11 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	conn.Gr.Decode(&ans)
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -244,7 +266,11 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	conn.Gr.Decode(&ans)
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
@@ -293,7 +319,12 @@ func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (er
 
 	for {
 		var ans ramnet.Ansdata
-		conn.Gr.Decode(&ans)
+		err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+
 		if ans.Error != "" {
 			err = errors.New(ans.Error)
 			return
@@ -334,7 +365,12 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 
 	for {
 		var ans ramnet.Ansdata
-		conn.Gr.Decode(&ans)
+		err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+
 		if ans.Error != "" {
 			err = errors.New(ans.Error)
 			return
@@ -374,7 +410,11 @@ func (c *CacheObj) Del(key string) (err error) {
 	}
 
 	var ans ramnet.Ansdata
-	conn.Gr.Decode(&ans)
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
 
 	if ans.Error != "" {
 		err = errors.New(ans.Error)
