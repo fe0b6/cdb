@@ -97,7 +97,7 @@ func (c *CacheObj) readAns(conn *ramnet.ClientConn, to time.Duration, i interfac
 		return
 	}
 
-	err = conn.Gr.Decode(&i)
+	err = conn.Gr.Decode(i)
 	if err != nil {
 		log.Println("[error]", err)
 		return
