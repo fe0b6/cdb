@@ -432,3 +432,91 @@ func (c *CacheObj) setPrefix(key string) string {
 	}
 	return c.prefix + key
 }
+
+// Notify - отправляем уведомление
+func (c *CacheObj) Notify(key string, data []byte) (err error) {
+	return c.NotifyMulti([]string{key}, data)
+}
+
+// NotifyStr - отправляем уведомление
+func (c *CacheObj) NotifyStr(key string, data string) (err error) {
+	return c.NotifyMulti([]string{key}, []byte(data))
+}
+
+// NotifyMulti - отправляем уведомление
+func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
+	for i := range keys {
+		keys[i] = c.setPrefix(keys[i])
+	}
+
+	err = conn.Send(ramnet.Rqdata{
+		Action: "notify",
+		Data: tools.ToGob(ramnet.RqdataNotify{
+			Keys: keys,
+			Data: data,
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	var ans ramnet.Ansdata
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	if ans.Error != "" {
+		err = errors.New(ans.Error)
+		return
+	}
+
+	return
+}
+
+// Subscribe - подписываемся на уведомления
+func (c *CacheObj) Subscribe(keys []string, f func([]byte)) (err error) {
+	conn, err := c.initConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer conn.Conn.Close()
+
+	for i := range keys {
+		keys[i] = c.setPrefix(keys[i])
+	}
+
+	err = conn.Send(ramnet.Rqdata{
+		Action: "subscribe",
+		Data:   tools.ToGob(keys),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	for {
+		var b []byte
+		err = c.readAns(conn, ramnet.ConnectTimeout, &b)
+		if err != nil {
+			log.Println("[error]", err)
+			break
+		}
+
+		f(b)
+	}
+
+	return
+}
