@@ -509,7 +509,7 @@ func (c *CacheObj) Subscribe(keys []string, f func([]byte)) (err error) {
 
 	for {
 		var b []byte
-		err = c.readAns(conn, ramnet.ConnectTimeout, &b)
+		err = c.readAns(conn, 24*time.Hour, &b)
 		if err != nil {
 			log.Println("[error]", err)
 			break
