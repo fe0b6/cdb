@@ -231,7 +231,7 @@ func _setInitedData(i interface{}, o *ParamObj) {
 		ptr := reflect.New(reflect.Indirect(f).Type())
 		err := json.Unmarshal(el.FieldByName(si.Field(k).Name).Bytes(), ptr.Interface())
 		if err != nil {
-			log.Println("[error]", err)
+			log.Println("[error]", err, string(el.FieldByName(si.Field(k).Name).Bytes()))
 		} else {
 			f.Set(ptr.Elem())
 		}
