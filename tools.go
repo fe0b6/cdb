@@ -23,3 +23,11 @@ func GetPlaceholder(l int) string {
 	}
 	return strings.Join(arr, ",")
 }
+
+// GetMultiPlaceholder - Формируем нужное кол-во placeholders для множественной вставки
+func GetMultiPlaceholder(l, c int) string {
+	str := strings.TrimRight(strings.Repeat("?,", l), ",")
+	str = strings.TrimRight(strings.Repeat("("+str+")", c), ",")
+
+	return ReplacePlaceholder(str)
+}
