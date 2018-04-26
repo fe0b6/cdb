@@ -2,6 +2,7 @@ package cdb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -12,4 +13,13 @@ func ReplacePlaceholder(sqlrq string) string {
 		sqlrq = strings.Replace(sqlrq, "?", fmt.Sprintf("$%d", nParam), 1)
 	}
 	return sqlrq
+}
+
+// GetPlaceholder - Формируем нужное кол-во placeholders
+func GetPlaceholder(l int) string {
+	arr := make([]string, l)
+	for i := 1; i <= l; i++ {
+		arr[i-1] = "$" + strconv.Itoa(i)
+	}
+	return strings.Join(arr, ",")
 }
