@@ -163,6 +163,10 @@ func Set(i interface{}) (err error) {
 		}
 		sqlrq = fmt.Sprintf("UPDATE %s SET %s WHERE %s=:%s", tinfo["sourcetable"],
 			tinfo["upvalues"], tinfo["pkey"], tinfo["pkey"])
+
+		if tx == nil {
+			sqlrq += " RETURNING NOTHING"
+		}
 	} else if tinfo["pkey"] != "" {
 		sqlrq = fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s) RETURNING %s", tinfo["sourcetable"],
 			tinfo["fields"], tinfo["values"], tinfo["pkey"])
