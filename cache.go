@@ -1,6 +1,7 @@
 package cdb
 
 import (
+	"encoding/binary"
 	"errors"
 	"log"
 	"strings"
@@ -279,6 +280,51 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 		return
 	}
 
+	return
+}
+
+// Incr - Увеличиваем значение
+func (c *CacheObj) Incr(key string, i int64) (obj ramstore.Obj, err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
+	key = c.setPrefix(key)
+
+	buf := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutVarint(buf, i)
+
+	err = conn.Send(ramnet.Rqdata{
+		Action: "incr",
+		Data: tools.ToGob(ramnet.RqdataSet{
+			Key: key,
+			Obj: ramstore.Obj{
+				Data: buf[:n],
+			},
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	var ans ramnet.Ansdata
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	if ans.Error != "" {
+		err = errors.New(ans.Error)
+		return
+	}
+
+	obj = ans.Obj
 	return
 }
 
