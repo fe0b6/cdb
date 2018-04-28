@@ -328,6 +328,47 @@ func (c *CacheObj) Incr(key string, i int64) (ai int64, err error) {
 	return
 }
 
+// Expire - Ставим истечение для ключа
+func (c *CacheObj) Expire(key string, ex int) (err error) {
+	conn, err := c.getConnect()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	defer c.pushConnect(conn)
+
+	key = c.setPrefix(key)
+
+	err = conn.Send(ramnet.Rqdata{
+		Action: "expire",
+		Data: tools.ToGob(ramnet.RqdataSet{
+			Key: key,
+			Obj: ramstore.Obj{
+				Expire: ex,
+			},
+		}),
+	})
+
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	var ans ramnet.Ansdata
+	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	if ans.Error != "" {
+		err = errors.New(ans.Error)
+		return
+	}
+
+	return
+}
+
 // MultiGet - получаем список объектов из кэша
 func (c *CacheObj) MultiGet(keys []string) (h map[string]ramstore.Obj, err error) {
 	h = make(map[string]ramstore.Obj)
