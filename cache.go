@@ -284,7 +284,7 @@ func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
 }
 
 // Incr - Увеличиваем значение
-func (c *CacheObj) Incr(key string, i int64) (obj ramstore.Obj, err error) {
+func (c *CacheObj) Incr(key string, i int64) (ai int64, err error) {
 	conn, err := c.getConnect()
 	if err != nil {
 		log.Println("[error]", err)
@@ -324,7 +324,7 @@ func (c *CacheObj) Incr(key string, i int64) (obj ramstore.Obj, err error) {
 		return
 	}
 
-	obj = ans.Obj
+	ai, _ = binary.Varint(ans.Obj.Data)
 	return
 }
 
