@@ -192,7 +192,7 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	tnu := time.Now().UnixNano()
 
 	if ex > 0 {
-		ex += int(tnu)
+		ex += int(time.Now().Unix())
 	}
 
 	key = c.setPrefix(key)
@@ -344,7 +344,7 @@ func (c *CacheObj) Expire(key string, ex int) (err error) {
 		Data: tools.ToGob(ramnet.RqdataSet{
 			Key: key,
 			Obj: ramstore.Obj{
-				Expire: ex,
+				Expire: int(time.Now().Unix()) + ex,
 			},
 		}),
 	})
