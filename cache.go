@@ -572,7 +572,7 @@ func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
 }
 
 // Subscribe - подписываемся на уведомления
-func (c *CacheObj) Subscribe(keys []string, f func([]byte)) (conn *ramnet.ClientConn, err error) {
+func (c *CacheObj) Subscribe(keys []string, f func([]byte) bool) (conn *ramnet.ClientConn, err error) {
 	conn, err = c.initConnect()
 	if err != nil {
 		log.Println("[error]", err)
@@ -602,7 +602,9 @@ func (c *CacheObj) Subscribe(keys []string, f func([]byte)) (conn *ramnet.Client
 			break
 		}
 
-		f(b)
+		if !f(b) {
+			break
+		}
 	}
 
 	return
