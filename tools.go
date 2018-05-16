@@ -26,9 +26,9 @@ func GetPlaceholder(l int) string {
 
 // GetPlaceholderWithDiff - Формируем нужное кол-во placeholders со смещением
 func GetPlaceholderWithDiff(diff, l int) string {
-	arr := make([]string, l)
+	arr := []string{}
 	for i := diff + 1; i <= diff+l; i++ {
-		arr[i-1] = "$" + strconv.Itoa(i)
+		arr = append(arr, "$"+strconv.Itoa(i))
 	}
 	return strings.Join(arr, ",")
 }
