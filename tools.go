@@ -33,7 +33,7 @@ func GetPlaceholderWithDiff(diff, l int) string {
 	return strings.Join(arr, ",")
 }
 
-// GetMultiPlaceholder - Формируем нужное кол-во placeholders для множественной вставки
+// GetMultiPlaceholder - Формируем нужное кол-во placeholders для множественной вставки. l - кол-во элеменетов, c - кол-во повторов
 func GetMultiPlaceholder(l, c int) string {
 	str := strings.TrimRight(strings.Repeat("?,", l), ",")
 	str = strings.TrimRight(strings.Repeat("("+str+"),", c), ",")
