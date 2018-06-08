@@ -100,7 +100,9 @@ func (c *CacheObj) readAns(conn *ramnet.ClientConn, to time.Duration, i interfac
 
 	err = conn.Gr.Decode(i)
 	if err != nil {
-		log.Println("[error]", err)
+		if !strings.Contains(err.Error(), "i/o timeout") {
+			log.Println("[error]", err)
+		}
 		return
 	}
 	return
@@ -598,7 +600,9 @@ func (c *CacheObj) Subscribe(keys []string, f func([]byte) bool) (conn *ramnet.C
 		var b []byte
 		err = c.readAns(conn, 24*time.Hour, &b)
 		if err != nil {
-			log.Println("[error]", err)
+			if !strings.Contains(err.Error(), "i/o timeout") {
+				log.Println("[error]", err)
+			}
 			break
 		}
 
