@@ -127,7 +127,9 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 	})
 
 	if err != nil {
-		log.Println("[error]", err)
+		if !strings.Contains(err.Error(), "i/o timeout") {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
@@ -151,7 +153,7 @@ func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
 func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
 	obj, err := c.Get(key)
 	if err != nil {
-		if err.Error() != "key not found" {
+		if err.Error() != "key not found" && !strings.Contains(err.Error(), "i/o timeout") {
 			log.Println("[error]", err)
 		}
 		return
@@ -212,7 +214,9 @@ func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
 	})
 
 	if err != nil {
-		log.Println("[error]", err)
+		if !strings.Contains(err.Error(), "i/o timeout") {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
