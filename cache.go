@@ -558,7 +558,9 @@ func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
 	})
 
 	if err != nil {
-		log.Println("[error]", err)
+		if !strings.Contains(err.Error(), "i/o timeout") {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
