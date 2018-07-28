@@ -412,7 +412,9 @@ func getTagInfo(i interface{}, t string) map[string]string {
 	values := []string{}
 	upvalues := []string{}
 	var pkey, table string
+	log.Println(si.NumField())
 	for k := 0; k < si.NumField(); k++ {
+
 		field := si.Field(k)
 		f := field.Tag.Get("db")
 		pk := field.Tag.Get("pk")
