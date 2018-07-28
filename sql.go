@@ -174,7 +174,7 @@ func Set(i interface{}) (err error) {
 		log.Fatalln("bad set rq")
 	}
 
-	//	log.Println(sqlrq)
+	log.Println(sqlrq)
 	//	log.Printf("%+v", i)
 
 	var rows *sqlx.Rows
