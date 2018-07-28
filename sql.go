@@ -412,7 +412,6 @@ func getTagInfo(i interface{}, t string) map[string]string {
 	values := []string{}
 	upvalues := []string{}
 	var pkey, table string
-	log.Println(si.NumField())
 	for k := 0; k < si.NumField(); k++ {
 
 		field := si.Field(k)
@@ -446,7 +445,11 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			values = append(values, ":"+f)
 			upvalues = append(upvalues, f+"=:"+f)
 		}
+	}
 
+	if len(values) == 0 {
+		fields = append(fields, pkey)
+		values = append(values, ":"+pkey)
 	}
 
 	h := map[string]string{
