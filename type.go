@@ -1,9 +1,12 @@
 package cdb
 
 import (
+	"encoding/gob"
 	"log"
+	"os"
 	"regexp"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/fe0b6/ramnet"
@@ -135,4 +138,28 @@ type InitCacheConnect struct {
 	Host           string
 	Prefix         string
 	QueueStartSize int
+}
+
+// InitQueueParam - объект инициализации очереди
+type InitQueueParam struct {
+	Path      string
+	QueueSize int
+}
+
+// Объект для щаписи в очередь
+type queueData struct {
+	ID   string
+	Ok   bool
+	Data []byte
+}
+
+// QueueObj - Объект очереди
+type QueueObj struct {
+	Chan         chan queueData
+	Path         string
+	Fh           *os.File
+	Gw           *gob.Encoder
+	FileOpenTime time.Time
+	Exited       bool
+	sync.WaitGroup
 }

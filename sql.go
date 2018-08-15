@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/fe0b6/tools"
+
 	"github.com/jmoiron/sqlx"
 	// Подключаем драйвер postgress
 	_ "github.com/lib/pq"
@@ -227,19 +229,28 @@ func _setInitedData(i interface{}, o *ParamObj) {
 		si = si.Elem()
 	}
 	for k := 0; k < si.NumField(); k++ {
-		f := el.FieldByName(si.Field(k).Name + "JSON")
-		if !f.IsValid() || si.Field(k).Type.String() != "[]uint8" {
-			continue
-		}
-
-		ptr := reflect.New(reflect.Indirect(f).Type())
-		err := json.Unmarshal(el.FieldByName(si.Field(k).Name).Bytes(), ptr.Interface())
-		if err != nil {
-			if string(el.FieldByName(si.Field(k).Name).Bytes()) != "" {
-				log.Println("[error]", err, string(el.FieldByName(si.Field(k).Name).Bytes()))
+		if si.Field(k).Type.String() == "[]uint8" {
+			//JSON
+			jsonField := el.FieldByName(si.Field(k).Name + "JSON")
+			if jsonField.IsValid() {
+				ptr := reflect.New(reflect.Indirect(jsonField).Type())
+				err := json.Unmarshal(el.FieldByName(si.Field(k).Name).Bytes(), ptr.Interface())
+				if err != nil {
+					if string(el.FieldByName(si.Field(k).Name).Bytes()) != "" {
+						log.Println("[error]", err, string(el.FieldByName(si.Field(k).Name).Bytes()))
+					}
+				} else {
+					jsonField.Set(ptr.Elem())
+				}
 			}
-		} else {
-			f.Set(ptr.Elem())
+
+			// GOB
+			gobField := el.FieldByName(si.Field(k).Name + "GOB")
+			if gobField.IsValid() {
+				ptr := reflect.New(reflect.Indirect(gobField).Type())
+				tools.FromGob(ptr.Interface(), el.FieldByName(si.Field(k).Name).Bytes())
+				gobField.Set(ptr.Elem())
+			}
 		}
 	}
 
@@ -386,14 +397,23 @@ func getTagInfo(i interface{}, t string) map[string]string {
 			field := si.Field(k)
 			name := field.Name
 
-			// Проверяем есть ли json для этой переменной
-			jsonField := vi.FieldByName(name + "JSON")
-			if jsonField.IsValid() && field.Type.String() == "[]uint8" {
-				b, err := json.Marshal(jsonField.Interface())
-				if err != nil {
-					log.Println("[error]", err)
+			if field.Type.String() == "[]uint8" {
+				// Проверяем есть ли json для этой переменной
+				jsonField := vi.FieldByName(name + "JSON")
+				if jsonField.IsValid() {
+					b, err := json.Marshal(jsonField.Interface())
+					if err != nil {
+						log.Println("[error]", err)
+					}
+					vi.FieldByName(name).SetBytes(b)
 				}
-				vi.FieldByName(name).SetBytes(b)
+
+				// Проверяем есть ли gob для этой переменной
+				gobField := vi.FieldByName(name + "GOB")
+				if gobField.IsValid() {
+					b := tools.ToGob(gobField.Interface())
+					vi.FieldByName(name).SetBytes(b)
+				}
 			}
 
 			v, ok := th[name]
