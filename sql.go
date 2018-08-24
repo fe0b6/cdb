@@ -187,6 +187,7 @@ func Set(i interface{}) (err error) {
 	}
 	if err != nil {
 		log.Println("[error]", err)
+		log.Println("[error]", sqlrq)
 		return
 	}
 	defer rows.Close()
