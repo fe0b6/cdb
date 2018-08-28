@@ -403,7 +403,7 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				// Проверяем есть ли json для этой переменной
 				jsonField := vi.FieldByName(name + "JSON")
 				if jsonField.IsValid() {
-					if jsonField.Kind().String() != "struct" && jsonField.IsNil() {
+					if tools.IsNil(jsonField.Interface()) {
 						skip = true
 					} else {
 						b, err := json.Marshal(jsonField.Interface())
@@ -418,7 +418,7 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				// Проверяем есть ли gob для этой переменной
 				gobField := vi.FieldByName(name + "GOB")
 				if gobField.IsValid() {
-					if gobField.Kind().String() != "struct" && gobField.IsNil() {
+					if tools.IsNil(jsonField.Interface()) {
 						skip = true
 					} else {
 						b := tools.ToGob(gobField.Interface())
