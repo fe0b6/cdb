@@ -418,13 +418,15 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				// Проверяем есть ли gob для этой переменной
 				gobField := vi.FieldByName(name + "GOB")
 				if gobField.IsValid() {
-					log.Println(gobField.Len())
-					if gobField.Len() == 0 {
-						skip = true
-					} else {
-						b := tools.ToGob(gobField.Interface())
-						vi.FieldByName(name).SetBytes(b)
-					}
+					log.Println(reflect.TypeOf(gobField.Elem()))
+
+					log.Println(gobField)
+					//if gobField.IsNil() {
+					//		skip = true
+					//	} else {
+					b := tools.ToGob(gobField.Interface())
+					vi.FieldByName(name).SetBytes(b)
+					//}
 				}
 			}
 
