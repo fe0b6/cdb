@@ -420,7 +420,9 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				if gobField.IsValid() {
 					log.Println(reflect.TypeOf(gobField))
 
-					log.Println(gobField)
+					log.Println(reflect.DeepEqual(gobField.Interface(), nil))
+
+					log.Println(gobField.Pointer())
 					//if gobField.IsNil() {
 					//		skip = true
 					//	} else {
