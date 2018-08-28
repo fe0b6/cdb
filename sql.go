@@ -417,6 +417,8 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				// Проверяем есть ли gob для этой переменной
 				gobField := vi.FieldByName(name + "GOB")
 				if gobField.IsValid() {
+					log.Println(gobField.Interface())
+
 					b := tools.ToGob(gobField.Interface())
 					vi.FieldByName(name).SetBytes(b)
 				}
