@@ -403,7 +403,6 @@ func getTagInfo(i interface{}, t string) map[string]string {
 				// Проверяем есть ли json для этой переменной
 				jsonField := vi.FieldByName(name + "JSON")
 				if jsonField.IsValid() {
-					log.Println(jsonField.Interface())
 					b, err := json.Marshal(jsonField.Interface())
 					if err != nil {
 						log.Println("[error]", err)
