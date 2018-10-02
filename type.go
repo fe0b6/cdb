@@ -47,6 +47,7 @@ type InitConnect struct {
 	DBName   string
 	Charset  string
 	SSL      SSLConf
+	Silent   bool
 }
 
 // SSLConf - Объект конфига SSL

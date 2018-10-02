@@ -19,11 +19,15 @@ import (
 var (
 	// Dbh - хэндлер базы
 	Dbh *sqlx.DB
+
+	silentInsertError bool
 )
 
 // Connect - Подключание к базе
 func Connect(o InitConnect) {
 	var err error
+
+	silentInsertError = o.Silent
 
 	// Кодировка по умолчанию
 	if o.Charset == "" {
@@ -186,8 +190,10 @@ func Set(i interface{}) (err error) {
 		rows, err = Dbh.NamedQuery(sqlrq, i)
 	}
 	if err != nil {
-		log.Println("[error]", err)
-		log.Println("[error]", sqlrq)
+		if !silentInsertError {
+			log.Println("[error]", err)
+			log.Println("[error]", sqlrq)
+		}
 		return
 	}
 	defer rows.Close()
