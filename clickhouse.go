@@ -22,7 +22,7 @@ func ConnectClickhouse(o InitConnect) {
 	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s",
 		o.Socket, o.Login, o.Password, o.DBName))
 	if err != nil {
-		log.Fatalln("[fatal]", err)
+		log.Println("[error]", err)
 		return
 	}
 
