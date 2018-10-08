@@ -15,8 +15,7 @@ var (
 )
 
 // ConnectClickhouse - Подключание к clickhouse
-func ConnectClickhouse(o InitConnect) {
-	var err error
+func ConnectClickhouse(o InitConnect) (err error) {
 
 	// Коннефкт к базе
 	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s",
@@ -26,4 +25,5 @@ func ConnectClickhouse(o InitConnect) {
 		return
 	}
 
+	return
 }
