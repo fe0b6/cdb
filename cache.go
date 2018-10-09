@@ -60,6 +60,22 @@ func (c *CacheObj) Get(key string) (b []byte, err error) {
 	return
 }
 
+// Exists - Проверяем есть ли объект
+func (c *CacheObj) Exists(key string) (ok bool, err error) {
+	key = c.setPrefix(key)
+
+	ans, err := c.Conn.Exists(key).Result()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+	if ans == 1 {
+		ok = true
+	}
+
+	return
+}
+
 // SetEx - добавление объекта со сроком жизни
 func (c *CacheObj) SetEx(key string, data interface{}, ex int) (err error) {
 	key = c.setPrefix(key)
