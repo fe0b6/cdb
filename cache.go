@@ -109,6 +109,16 @@ func (c *CacheObj) Set(key string, data interface{}) (err error) {
 	return c.SetEx(key, data, 0)
 }
 
+// SetStrEx - добавляем объект в кэш
+func (c *CacheObj) SetStrEx(key string, data string, ex int) (err error) {
+	return c.SetEx(key, data, ex)
+}
+
+// SetStr - добавляем объект в кэш
+func (c *CacheObj) SetStr(key string, data string) (err error) {
+	return c.SetEx(key, data, 0)
+}
+
 // Incr - Увеличиваем значение
 func (c *CacheObj) Incr(key string, i int64) (ai int64, err error) {
 	key = c.setPrefix(key)
