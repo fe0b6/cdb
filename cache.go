@@ -39,7 +39,9 @@ func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
 	var b []byte
 	err = c.Conn.Get(key).Scan(&b)
 	if err != nil {
-		log.Println("[error]", err)
+		if err.Error() != "redis: nil" {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
@@ -53,7 +55,9 @@ func (c *CacheObj) Get(key string) (b []byte, err error) {
 
 	err = c.Conn.Get(key).Scan(&b)
 	if err != nil {
-		log.Println("[error]", err)
+		if err.Error() != "redis: nil" {
+			log.Println("[error]", err)
+		}
 		return
 	}
 
