@@ -1,18 +1,13 @@
 package cdb
 
 import (
-	"encoding/binary"
-	"errors"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/fe0b6/ramnet"
-	"github.com/fe0b6/ramstore"
 	"github.com/fe0b6/tools"
+	"github.com/go-redis/redis"
 )
-
-const cacheQueueSize = 100
 
 var (
 	// Cdb - хэндлер кэша
@@ -21,145 +16,60 @@ var (
 
 // CacheConnect - коннект к кэщу
 func CacheConnect(o InitCacheConnect) (err error) {
-	Cdb.addr = o.Host
+	Cdb.addrs = o.Hosts
 	Cdb.prefix = o.Prefix
 
-	Cdb.connectQueue = make(chan *ramnet.ClientConn, cacheQueueSize)
-
-	err = Cdb.createConnet(o.QueueStartSize)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	return
-}
-
-func (c *CacheObj) createConnet(s int) (err error) {
-	if s == 0 {
-		s = 1
-	}
-
-	for i := 0; i < s; i++ {
-		var conn *ramnet.ClientConn
-		conn, err = c.initConnect()
-		if err != nil {
-			log.Println("[error]", err)
-			return
-		}
-
-		c.pushConnect(conn)
-	}
-
-	return
-}
-
-func (c *CacheObj) initConnect() (conn *ramnet.ClientConn, err error) {
-	conn = &ramnet.ClientConn{Addr: c.addr}
-
-	err = conn.Connet()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	return
-}
-
-func (c *CacheObj) pushConnect(conn *ramnet.ClientConn) {
-	c.Lock()
-	if len(c.connectQueue) < cacheQueueSize/2 {
-		c.connectQueue <- conn
-	}
-	c.Unlock()
-}
-
-func (c *CacheObj) getConnect() (conn *ramnet.ClientConn, err error) {
-	c.Lock()
-	if len(c.connectQueue) > 0 {
-		conn = <-c.connectQueue
-		c.Unlock()
-	} else {
-		c.Unlock()
-
-		conn, err = c.initConnect()
-		if err != nil {
-			log.Println("[error]", err)
-			return
-		}
-	}
-
-	return
-}
-func (c *CacheObj) readAns(conn *ramnet.ClientConn, to time.Duration, i interface{}) (err error) {
-	err = conn.Conn.SetReadDeadline(time.Now().Add(to))
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	err = conn.Gr.Decode(i)
-	if err != nil {
-		if !strings.Contains(err.Error(), "i/o timeout") {
-			log.Println("[error]", err)
-		}
-		return
-	}
-	return
-}
-
-// Get - Получаем объект из кэша
-func (c *CacheObj) Get(key string) (obj ramstore.Obj, err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
-	key = c.setPrefix(key)
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "get",
-		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: key,
-		}),
+	Cdb.Conn = redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs: Cdb.addrs,
 	})
 
-	if err != nil {
-		if !strings.Contains(err.Error(), "i/o timeout") {
-			log.Println("[error]", err)
-		}
-		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	err = Cdb.Conn.Ping().Err()
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
 
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	obj = ans.Obj
 	return
 }
 
 // GetObj - Получаем объект из кэша и сразу его преобразовываем
 func (c *CacheObj) GetObj(key string, i interface{}) (err error) {
-	obj, err := c.Get(key)
+	key = c.setPrefix(key)
+
+	var b []byte
+	err = c.Conn.Get(key).Scan(&b)
 	if err != nil {
-		if err.Error() != "key not found" && !strings.Contains(err.Error(), "i/o timeout") {
-			log.Println("[error]", err)
-		}
+		log.Println("[error]", err)
 		return
 	}
 
-	tools.FromGob(i, obj.Data)
+	tools.FromGob(i, b)
+	return
+}
+
+// Get - Получаем объект из кэша
+func (c *CacheObj) Get(key string) (b []byte, err error) {
+	key = c.setPrefix(key)
+
+	err = c.Conn.Get(key).Scan(&b)
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	return
+}
+
+// SetEx - добавление объекта со сроком жизни
+func (c *CacheObj) SetEx(key string, data interface{}, ex int) (err error) {
+	key = c.setPrefix(key)
+
+	err = c.Conn.Set(key, data, time.Second*time.Duration(ex)).Err()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
 	return
 }
 
@@ -175,307 +85,56 @@ func (c *CacheObj) SetObjEx(key string, i interface{}, ex int) (err error) {
 }
 
 // Set - добавляем объект в кэш
-func (c *CacheObj) Set(key string, data []byte) (err error) {
+func (c *CacheObj) Set(key string, data interface{}) (err error) {
 	return c.SetEx(key, data, 0)
-}
-
-// SetStr - добавляем объект в кэш (строки)
-func (c *CacheObj) SetStr(key string, data string) (err error) {
-	return c.Set(key, []byte(data))
-}
-
-// SetEx - добавление объекта со сроком жизни
-func (c *CacheObj) SetEx(key string, data []byte, ex int) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
-	tnu := time.Now().UnixNano()
-
-	if ex > 0 {
-		ex += int(time.Now().Unix())
-	}
-
-	key = c.setPrefix(key)
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "set",
-		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: key,
-			Obj: ramstore.Obj{
-				Data:   data,
-				Time:   tnu,
-				Expire: ex,
-			},
-		}),
-	})
-
-	if err != nil {
-		if !strings.Contains(err.Error(), "i/o timeout") {
-			log.Println("[error]", err)
-		}
-		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	return
-}
-
-// SetExStr - добавление строки со сроком жизни
-func (c *CacheObj) SetExStr(key string, data string, ex int) (err error) {
-	return c.SetEx(key, []byte(data), ex)
-}
-
-// MultiSet - массовое добавление объектов
-func (c *CacheObj) MultiSet(h map[string][]byte) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
-	tnu := time.Now().UnixNano()
-
-	d := []ramnet.RqdataSet{}
-	for k, v := range h {
-		k = c.setPrefix(k)
-
-		d = append(d, ramnet.RqdataSet{
-			Key: k,
-			Obj: ramstore.Obj{
-				Data: v,
-				Time: tnu,
-			},
-		})
-	}
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "multi_set",
-		Data:   tools.ToGob(d),
-	})
-
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	return
 }
 
 // Incr - Увеличиваем значение
 func (c *CacheObj) Incr(key string, i int64) (ai int64, err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
 	key = c.setPrefix(key)
 
-	buf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutVarint(buf, i)
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "incr",
-		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: key,
-			Obj: ramstore.Obj{
-				Data: buf[:n],
-			},
-		}),
-	})
-
+	ai, err = c.Conn.Incr(key).Result()
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
 
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	ai, _ = binary.Varint(ans.Obj.Data)
 	return
 }
 
 // Expire - Ставим истечение для ключа
 func (c *CacheObj) Expire(key string, ex int) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
 	key = c.setPrefix(key)
 
-	err = conn.Send(ramnet.Rqdata{
-		Action: "expire",
-		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: key,
-			Obj: ramstore.Obj{
-				Expire: int(time.Now().Unix()) + ex,
-			},
-		}),
-	})
-
+	err = c.Conn.Expire(key, time.Second*time.Duration(ex)).Err()
 	if err != nil {
 		log.Println("[error]", err)
 		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	return
-}
-
-// MultiGet - получаем список объектов из кэша
-func (c *CacheObj) MultiGet(keys []string) (h map[string]ramstore.Obj, err error) {
-	h = make(map[string]ramstore.Obj)
-	err = c.MultiGetFunc(keys, func(k string, o ramstore.Obj) {
-		h[k] = o
-	})
-	return
-}
-
-// MultiGetFunc - получаем список объектов из кэша в функцию
-func (c *CacheObj) MultiGetFunc(keys []string, f func(string, ramstore.Obj)) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
-	d := []ramnet.RqdataGet{}
-	for _, k := range keys {
-		k = c.setPrefix(k)
-
-		d = append(d, ramnet.RqdataGet{
-			Key: k,
-		})
-	}
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "multi_get",
-		Data:   tools.ToGob(d),
-	})
-
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	for {
-		var ans ramnet.Ansdata
-		err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-		if err != nil {
-			log.Println("[error]", err)
-			return
-		}
-
-		if ans.Error != "" {
-			err = errors.New(ans.Error)
-			return
-		}
-
-		if ans.EOF {
-			break
-		}
-
-		f(ans.Key, ans.Obj)
 	}
 
 	return
 }
 
 // Search - поиск ключей на соответствие
-func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
+func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 	q = c.setPrefix(q)
 
-	err = conn.Send(ramnet.Rqdata{
-		Action: "search",
-		Data: tools.ToGob(ramnet.RqdataGet{
-			Key: q,
-		}),
-	})
-
+	keys := []string{}
+	err = c.Conn.Keys(q).ScanSlice(&keys)
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
 
-	for {
-		var ans ramnet.Ansdata
-		err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
+	for _, k := range keys {
+		var b []byte
+		b, err = c.Get(k)
 		if err != nil {
 			log.Println("[error]", err)
-			return
+			continue
 		}
 
-		if ans.Error != "" {
-			err = errors.New(ans.Error)
-			return
-		}
-
-		if ans.EOF {
-			break
-		}
-
-		f(ans.Key, ans.Obj)
+		f(k, b)
 	}
 
 	return
@@ -483,47 +142,58 @@ func (c *CacheObj) Search(q string, f func(string, ramstore.Obj)) (err error) {
 
 // Del - Удаляем объект
 func (c *CacheObj) Del(key string) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer c.pushConnect(conn)
-
 	key = c.setPrefix(key)
 
-	err = conn.Send(ramnet.Rqdata{
-		Action: "del",
-		Data: tools.ToGob(ramnet.RqdataSet{
-			Key: key,
-		}),
-	})
-
+	err = c.Conn.Del(key).Err()
 	if err != nil {
 		log.Println("[error]", err)
-		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
 		return
 	}
 
 	return
 }
 
-func (c *CacheObj) setPrefix(key string) string {
-	if strings.Contains(key, c.prefix) {
-		return key
+// Subscribe - подписываемся на уведомления
+func (c *CacheObj) Subscribe(keys []string, f func(string, string) bool) (err error) {
+	for i := range keys {
+		keys[i] = c.setPrefix(keys[i])
 	}
-	return c.prefix + key
+
+	// Подписываемся на каналы
+	pubsub := c.Conn.Subscribe(keys...)
+
+	// Ждем пока примут подписку
+	_, err = pubsub.Receive()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	// Получаем канал для сообщений
+	ch := pubsub.Channel()
+	// Получаем сообщения
+	for msg := range ch {
+		if !f(msg.Channel, msg.Payload) {
+			break
+		}
+	}
+
+	return
+}
+
+// NotifyMulti - отправляем уведомление
+func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
+
+	for _, key := range keys {
+		key = c.setPrefix(key)
+		err = c.Conn.Publish(key, data).Err()
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+	}
+
+	return
 }
 
 // Notify - отправляем уведомление
@@ -536,86 +206,9 @@ func (c *CacheObj) NotifyStr(key string, data string) (err error) {
 	return c.NotifyMulti([]string{key}, []byte(data))
 }
 
-// NotifyMulti - отправляем уведомление
-func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
-	conn, err := c.getConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
+func (c *CacheObj) setPrefix(key string) string {
+	if strings.HasPrefix(key, c.prefix) {
+		return key
 	}
-	defer c.pushConnect(conn)
-
-	for i := range keys {
-		keys[i] = c.setPrefix(keys[i])
-	}
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "notify",
-		Data: tools.ToGob(ramnet.RqdataNotify{
-			Keys: keys,
-			Data: data,
-		}),
-	})
-
-	if err != nil {
-		if !strings.Contains(err.Error(), "i/o timeout") {
-			log.Println("[error]", err)
-		}
-		return
-	}
-
-	var ans ramnet.Ansdata
-	err = c.readAns(conn, ramnet.ConnectTimeout, &ans)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	if ans.Error != "" {
-		err = errors.New(ans.Error)
-		return
-	}
-
-	return
-}
-
-// Subscribe - подписываемся на уведомления
-func (c *CacheObj) Subscribe(keys []string, f func([]byte) bool) (conn *ramnet.ClientConn, err error) {
-	conn, err = c.initConnect()
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-	defer conn.Conn.Close()
-
-	for i := range keys {
-		keys[i] = c.setPrefix(keys[i])
-	}
-
-	err = conn.Send(ramnet.Rqdata{
-		Action: "subscribe",
-		Data:   tools.ToGob(keys),
-	})
-
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	for {
-		var b []byte
-		err = c.readAns(conn, 24*time.Hour, &b)
-		if err != nil {
-			if !strings.Contains(err.Error(), "i/o timeout") {
-				log.Println("[error]", err)
-			}
-			break
-		}
-
-		if !f(b) {
-			break
-		}
-	}
-
-	return
+	return c.prefix + key
 }

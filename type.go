@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/fe0b6/ramnet"
+	"github.com/go-redis/redis"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -128,17 +128,15 @@ func (o *ParamObj) clean() {
 
 // CacheObj - Объект коннекта к кэшу
 type CacheObj struct {
-	addr         string
-	prefix       string
-	connectQueue chan *ramnet.ClientConn
-	sync.Mutex
+	addrs  []string
+	prefix string
+	Conn   *redis.ClusterClient
 }
 
 // InitCacheConnect - объект инициализации коннекта к кэшу
 type InitCacheConnect struct {
-	Host           string
-	Prefix         string
-	QueueStartSize int
+	Hosts  []string
+	Prefix string
 }
 
 // InitQueueParam - объект инициализации очереди
