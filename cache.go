@@ -191,6 +191,7 @@ func (c *CacheObj) Subscribe(keys []string, f func(string, string) bool) (err er
 
 	// Подписываемся на каналы
 	pubsub := c.Conn.Subscribe(keys...)
+	defer pubsub.Close()
 
 	// Ждем пока примут подписку
 	_, err = pubsub.Receive()
