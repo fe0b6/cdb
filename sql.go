@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -257,6 +258,12 @@ func _setInitedData(i interface{}, o *ParamObj) {
 				ptr := reflect.New(reflect.Indirect(gobField).Type())
 				tools.FromGob(ptr.Interface(), el.FieldByName(si.Field(k).Name).Bytes())
 				gobField.Set(ptr.Elem())
+			}
+		} else if si.Field(k).Type.String() == "int64" {
+			// Str
+			strField := el.FieldByName(si.Field(k).Name + "Str")
+			if strField.IsValid() {
+				strField.SetString(strconv.FormatInt(el.FieldByName(si.Field(k).Name).Int(), 10))
 			}
 		}
 	}
