@@ -47,8 +47,10 @@ func Connect(o InitConnect) {
 	}
 
 	// Коннефкт к базе
-	Dbh, err = sqlx.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?charset=%s%s", o.Login,
-		o.Password, o.Socket, o.DBName, o.Charset, ssl))
+	//Dbh, err = sqlx.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?charset=%s%s", o.Login,
+	//	o.Password, o.Socket, o.DBName, o.Charset, ssl))
+	Dbh, err = sqlx.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?%s", o.Login,
+		o.Password, o.Socket, o.DBName, ssl))
 	if err != nil {
 		log.Fatalln("[fatal]", err)
 		return
