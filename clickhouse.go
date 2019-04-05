@@ -26,8 +26,8 @@ func ConnectClickhouse(o InitConnect) (err error) {
 		return
 	}*/
 
-	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("http://%s/%s?username=%s&password=%s",
-		o.Socket, o.DBName, o.Login, o.Password))
+	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("http://%s/%s",
+		o.Socket, o.DBName))
 	if err != nil {
 		log.Println("[error]", err)
 		return
