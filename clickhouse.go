@@ -6,8 +6,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	// подключаем clickhouse
-	//_ "github.com/kshvakov/clickhouse"
-	_ "github.com/mailru/go-clickhouse"
+	_ "github.com/kshvakov/clickhouse"
+	//_ "github.com/mailru/go-clickhouse"
 )
 
 var (
@@ -18,21 +18,21 @@ var (
 // ConnectClickhouse - Подключание к clickhouse
 func ConnectClickhouse(o InitConnect) (err error) {
 
-	/*// Коннефкт к базе
+	// Коннефкт к базе
 	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s",
 		o.Socket, o.Login, o.Password, o.DBName))
 	if err != nil {
 		log.Println("[error]", err)
 		return
-	}*/
-
-	Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("http://%s/%s",
-		o.Socket, o.DBName))
-	if err != nil {
-		log.Println("[error]", err)
-		return
 	}
-
+	/*
+		Chh, err = sqlx.Open("clickhouse", fmt.Sprintf("http://%s/%s",
+			o.Socket, o.DBName))
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+	*/
 	err = Chh.Ping()
 	if err != nil {
 		log.Println("[error]", err)
