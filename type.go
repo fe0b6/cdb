@@ -37,7 +37,6 @@ type Parent struct {
 	DBParentObjInited bool                   `json:"-"`
 	DBParentObjTx     unsafe.Pointer         `json:"-"`
 	DBParentInitValue map[string]interface{} `json:"-"`
-	sync.RWMutex
 }
 
 // InitConnect - Объект конекта к базе
