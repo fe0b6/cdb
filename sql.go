@@ -363,6 +363,11 @@ func getSQLStr(i interface{}, o *ParamObj) (sqlrq string) {
 	return
 }
 
+// GetTableName - Получаем название таблицы
+func GetTableName(i interface{}) string {
+	return getTableName(i)
+}
+
 func getTableName(i interface{}) string {
 	h := getTagInfo(i, "sourcetable")
 	return h["sourcetable"]
