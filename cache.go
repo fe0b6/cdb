@@ -179,6 +179,7 @@ func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 	log.Println(q)
 	iter := c.Conn.Scan(0, q, 1000).Iterator()
 	for iter.Next() {
+		log.Println(iter.Val())
 		var b []byte
 		b, err = c.Get(iter.Val())
 		if err != nil {
