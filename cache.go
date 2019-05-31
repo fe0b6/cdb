@@ -176,10 +176,8 @@ func (c *CacheObj) Expire(key string, ex int) (err error) {
 func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 	q = c.setPrefix(q)
 
-	log.Println(q)
 	iter := c.Conn.Scan(0, q, 1000).Iterator()
 	for iter.Next() {
-		log.Println(iter.Val())
 		var b []byte
 		b, err = c.Get(iter.Val())
 		if err != nil {
@@ -193,11 +191,6 @@ func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
-	}
-
-	iter2 := c.Conn.Scan(0, "s*", 1000).Iterator()
-	for iter2.Next() {
-		log.Println(iter2.Val())
 	}
 
 	return
