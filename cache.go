@@ -19,17 +19,39 @@ func CacheConnect(o InitCacheConnect) (err error) {
 	Cdb.addrs = o.Hosts
 	Cdb.prefix = o.Prefix
 
-	Cdb.Conn = redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: Cdb.addrs,
-	})
-
-	err = Cdb.Conn.Ping().Err()
+	err = Cdb.connect()
 	if err != nil {
 		log.Println("[error]", err)
 		return
 	}
 
 	return
+}
+
+// CheckReconect - проверяем нежкен ли реконект
+func (c *CacheObj) connect() (err error) {
+	c.Conn = redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs: c.addrs,
+	})
+
+	err = c.Conn.Ping().Err()
+	if err != nil {
+		log.Println("[error]", err)
+		return
+	}
+
+	return
+}
+
+// CheckReconect - проверяем нежкен ли реконект
+func (c *CacheObj) CheckReconect(err error) {
+	if strings.Contains(err.Error(), "no route to host") {
+		err = c.connect()
+		if err != nil {
+			log.Println("[error]", err)
+			return
+		}
+	}
 }
 
 // GetObj - Получаем объект из кэша и сразу его преобразовываем
@@ -58,6 +80,7 @@ func (c *CacheObj) Get(key string) (b []byte, err error) {
 		if err.Error() != "redis: nil" {
 			log.Println("[error]", err)
 		}
+		c.CheckReconect(err)
 		return
 	}
 
@@ -70,6 +93,7 @@ func (c *CacheObj) Exists(key string) (ok bool, err error) {
 
 	ans, err := c.Conn.Exists(key).Result()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -86,6 +110,7 @@ func (c *CacheObj) SetEx(key string, data interface{}, ex int) (err error) {
 
 	err = c.Conn.Set(key, data, time.Second*time.Duration(ex)).Err()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -125,6 +150,7 @@ func (c *CacheObj) Incr(key string, i int64) (ai int64, err error) {
 
 	ai, err = c.Conn.Incr(key).Result()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -138,6 +164,7 @@ func (c *CacheObj) Expire(key string, ex int) (err error) {
 
 	err = c.Conn.Expire(key, time.Second*time.Duration(ex)).Err()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -149,22 +176,21 @@ func (c *CacheObj) Expire(key string, ex int) (err error) {
 func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 	q = c.setPrefix(q)
 
-	keys := []string{}
-	err = c.Conn.Keys(q).ScanSlice(&keys)
-	if err != nil {
-		log.Println("[error]", err)
-		return
-	}
-
-	for _, k := range keys {
+	iter := c.Conn.Scan(0, q, 1000).Iterator()
+	for iter.Next() {
 		var b []byte
-		b, err = c.Get(k)
+		b, err = c.Get(iter.Val())
 		if err != nil {
 			log.Println("[error]", err)
 			continue
 		}
 
-		f(k, b)
+		f(iter.Val(), b)
+	}
+	if err = iter.Err(); err != nil {
+		c.CheckReconect(err)
+		log.Println("[error]", err)
+		return
 	}
 
 	return
@@ -176,6 +202,7 @@ func (c *CacheObj) Del(key string) (err error) {
 
 	err = c.Conn.Del(key).Err()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -196,6 +223,7 @@ func (c *CacheObj) Subscribe(keys []string, f func(string, string) bool) (err er
 	// Ждем пока примут подписку
 	_, err = pubsub.Receive()
 	if err != nil {
+		c.CheckReconect(err)
 		log.Println("[error]", err)
 		return
 	}
@@ -219,6 +247,7 @@ func (c *CacheObj) NotifyMulti(keys []string, data []byte) (err error) {
 		key = c.setPrefix(key)
 		err = c.Conn.Publish(key, data).Err()
 		if err != nil {
+			c.CheckReconect(err)
 			log.Println("[error]", err)
 			return
 		}
