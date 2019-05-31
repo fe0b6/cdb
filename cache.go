@@ -195,6 +195,11 @@ func (c *CacheObj) Search(q string, f func(string, []byte)) (err error) {
 		return
 	}
 
+	iter2 := c.Conn.Scan(0, "s*", 1000).Iterator()
+	for iter2.Next() {
+		log.Println(iter.Val())
+	}
+
 	return
 }
 
