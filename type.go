@@ -24,7 +24,7 @@ func init() {
 	paramObjCleanReg = map[string]*regexp.Regexp{
 		"fields": regexp.MustCompile("[^0-9a-zA-Z_,.*]"),
 		"table":  regexp.MustCompile("[^0-9a-zA-Z_,.]"),
-		"where":  regexp.MustCompile("[^0-9a-zA-Z_,.() \n\r\t=$?<>*+-:'~!@]"),
+		"where":  regexp.MustCompile("[^0-9a-zA-Z_,.() \n\r\t=$?<>*+-:'~!@%]"),
 		"group":  regexp.MustCompile("[^0-9a-zA-Z_,.() \n\r\t]"),
 		"order":  regexp.MustCompile("[^0-9a-zA-Z_,.() \n\r\t]"),
 		"limit":  regexp.MustCompile("[^0-9]"),
