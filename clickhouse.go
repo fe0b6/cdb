@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	// подключаем clickhouse
-	_ "github.com/kshvakov/clickhouse"
+	_ "github.com/ClickHouse/clickhouse-go"
 	//_ "github.com/mailru/go-clickhouse"
 )
 
