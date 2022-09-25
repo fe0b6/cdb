@@ -128,14 +128,14 @@ func (o *ParamObj) clean() {
 
 // CacheObj - Объект коннекта к кэшу
 type CacheObj struct {
-	addrs  []string
+	addr   string
 	prefix string
-	Conn   *redis.ClusterClient
+	Conn   *redis.Client
 }
 
 // InitCacheConnect - объект инициализации коннекта к кэшу
 type InitCacheConnect struct {
-	Hosts  []string
+	Host   string
 	Prefix string
 }
 

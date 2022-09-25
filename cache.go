@@ -16,7 +16,7 @@ var (
 
 // CacheConnect - коннект к кэщу
 func CacheConnect(o InitCacheConnect) (err error) {
-	Cdb.addrs = o.Hosts
+	Cdb.addr = o.Host
 	Cdb.prefix = o.Prefix
 
 	err = Cdb.connect()
@@ -30,8 +30,8 @@ func CacheConnect(o InitCacheConnect) (err error) {
 
 // CheckReconect - проверяем нежкен ли реконект
 func (c *CacheObj) connect() (err error) {
-	c.Conn = redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: c.addrs,
+	c.Conn = redis.NewClient(&redis.Options{
+		Addr: c.addr,
 	})
 
 	err = c.Conn.Ping().Err()
