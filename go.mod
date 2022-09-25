@@ -6,8 +6,8 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.5.4
 	github.com/fe0b6/tools v1.0.1
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/jmoiron/sqlx v1.3.5
-	github.com/lib/pq v1.10.7
+	github.com/jmoiron/sqlx v1.2.0
+	github.com/lib/pq v1.1.1
 )
 
 require (
@@ -16,4 +16,5 @@ require (
 	github.com/onsi/gomega v1.20.2 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 )
