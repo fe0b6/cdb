@@ -6,8 +6,8 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.5.4
 	github.com/fe0b6/tools v1.0.1
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/jmoiron/sqlx v1.3.4
-	github.com/lib/pq v1.10.2
+	github.com/jmoiron/sqlx v1.4.0
+	github.com/lib/pq v1.10.9
 )
 
 require (

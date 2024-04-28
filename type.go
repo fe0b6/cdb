@@ -48,6 +48,7 @@ type InitConnect struct {
 	Charset  string
 	SSL      SSLConf
 	Silent   bool
+	AppName  string
 }
 
 // SSLConf - Объект конфига SSL
